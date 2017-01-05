@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">SeasonApp</string>
     <string name="network_error_msg">An error occurred. Please try again later.</string>
+    <string name="api_base_url">http://seasonapi.herokuapp.com/api/</string>
 </resources>

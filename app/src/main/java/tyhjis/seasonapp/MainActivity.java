@@ -1,59 +1,51 @@
 package tyhjis.seasonapp;
 
 import android.content.Context;
-import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
-import android.widget.TextView;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.StringRequest;
-import com.android.volley.toolbox.Volley;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.text.Format;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
     private ListView veggieList;
-
+    private RequestQueue queue;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         veggieList = (ListView) findViewById(R.id.VeggieList);
+        queue = NetworkQueueSingleton.getInstance(this.getApplicationContext()).getRequestQueue();
     }
 
     protected void onStart() {
         super.onStart();
-        Format formatter = new SimpleDateFormat("MMMM", Locale.US);
-        String month = formatter.format(new Date());
-        System.out.println(month);
-        String url = "http://seasonapi.herokuapp.com/api/vegetables/byseason?s=" + month;
+        Integer monthNum = getMonthNumber();
+        String url = getString(R.string.api_base_url) + "seasons/" + monthNum;
         startCall(url);
+    }
+
+    private int getMonthNumber() {
+        Date date = new Date();
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(date);
+        return cal.get(Calendar.MONTH) + 1;
     }
 
     public void populateList(JSONObject vegetableObject) {
@@ -78,25 +70,18 @@ public class MainActivity extends AppCompatActivity {
         veggieList.setAdapter(adapter);
     }
 
-    public void showErrorMessage() {
-        TextView errorMsg = (TextView) findViewById(R.id.ErrorMsg);
-        errorMsg.setVisibility(View.VISIBLE);
-    }
-
     private void startCall(String url) {
-        RequestQueue requestQueue = Volley.newRequestQueue(this);
-        JsonObjectRequest request = new JsonObjectRequest(url, null, new Response.Listener<JSONObject>() {
-            @Override
+        System.out.println(url);
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
             public void onResponse(JSONObject response) {
                 populateList(response);
             }
         }, new Response.ErrorListener() {
-            @Override
             public void onErrorResponse(VolleyError error) {
-                showErrorMessage();
+                error.printStackTrace();
             }
         });
-        requestQueue.add(request);
+        NetworkQueueSingleton.getInstance(this.getApplicationContext()).addToRequestQueue(request);
     }
 
     private class StableArrayAdapter extends ArrayAdapter<String> {
