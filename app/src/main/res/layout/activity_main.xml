@@ -21,12 +21,18 @@
             android:visibility="invisible"/>
         <ListView
             android:layout_width="match_parent"
-            android:id="@+id/VeggieList"/>
+            android:id="@+id/VeggieList" />
         <TextView
             android:visibility="invisible"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/network_error_msg"
             android:id="@+id/ErrorMsg"/>
+        <TextView
+            android:visibility="invisible"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/loading_message"
+            android:id="@+id/LoadingMsg"/>
     </GridLayout>
 </RelativeLayout>

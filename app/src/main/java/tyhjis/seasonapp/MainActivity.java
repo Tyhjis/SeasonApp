@@ -1,13 +1,16 @@
 package tyhjis.seasonapp;
 
 import android.content.Context;
+import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
+import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
-import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
@@ -23,15 +26,12 @@ import java.util.HashMap;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-
     private ListView veggieList;
-    private RequestQueue queue;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         veggieList = (ListView) findViewById(R.id.VeggieList);
-        queue = NetworkQueueSingleton.getInstance(this.getApplicationContext()).getRequestQueue();
     }
 
     protected void onStart() {
@@ -48,63 +48,87 @@ public class MainActivity extends AppCompatActivity {
         return cal.get(Calendar.MONTH) + 1;
     }
 
-    public void populateList(JSONObject vegetableObject) {
-        JSONArray vegetables = null;
-        try {
-            vegetables = vegetableObject.getJSONArray("vegetables");
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        final ArrayList<String> veggies = new ArrayList<>();
-        if(vegetables != null) {
-            for(int i = 0; i < vegetables.length(); i++) {
+    public void populateList(JSONArray vegetables) {
+        final ArrayList<APIObject> vegetableList = new ArrayList<>();
+        final ArrayList<String> vegetableStringList = new ArrayList<>();
+        if (vegetables != null) {
+            for (int i = 0; i < vegetables.length(); i++) {
+                JSONObject vegetable = getJSONObjectFromArray(vegetables, i);
                 try {
-                    veggies.add(vegetables.getJSONObject(i).getString("name"));
-                } catch(JSONException e) {
+                    String vegetableName = vegetable.getString("name");
+                    int vegetableId = new Integer(vegetable.getString("id")).intValue();
+                    vegetableStringList.add(vegetableName);
+                    vegetableList.add(new Vegetable(vegetableId, vegetableName));
+                } catch (JSONException e) {
                     e.printStackTrace();
+                    showErrorMessage();
                     return;
                 }
             }
         }
-        final StableArrayAdapter adapter = new StableArrayAdapter(this, android.R.layout.simple_list_item_1, veggies);
+        final StableArrayAdapter adapter = new StableArrayAdapter(this, android.R.layout.simple_list_item_1, vegetableList, vegetableStringList);
         veggieList.setAdapter(adapter);
+        veggieList.setOnItemClickListener(new VegetableListClickListener());
+    }
+
+    public JSONObject getJSONObjectFromArray(JSONArray array, int index) {
+        try {
+            return array.getJSONObject(index);
+        } catch (JSONException e) {
+            e.printStackTrace();
+            showErrorMessage();
+            return null;
+        }
     }
 
     private void startCall(String url) {
-        System.out.println(url);
-        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
-            public void onResponse(JSONObject response) {
-                populateList(response);
-            }
-        }, new Response.ErrorListener() {
-            public void onErrorResponse(VolleyError error) {
-                error.printStackTrace();
-            }
-        });
+        showLoadingMessage();
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null, new JSONResponseListener(), new JSONResponseErrorListener());
+        request.setRetryPolicy(new DefaultRetryPolicy(50000, DefaultRetryPolicy.DEFAULT_MAX_RETRIES, DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
         NetworkQueueSingleton.getInstance(this.getApplicationContext()).addToRequestQueue(request);
     }
 
-    private class StableArrayAdapter extends ArrayAdapter<String> {
+    public void showLoadingMessage() {
+        findViewById(R.id.LoadingMsg).setVisibility(View.VISIBLE);
+    }
 
-        private HashMap<String, Integer> idMap;
+    public void hideLoadingMessage() {
+        findViewById(R.id.LoadingMsg).setVisibility(View.INVISIBLE);
+    }
 
-        public StableArrayAdapter(Context context, int textViewResourceId, List<String> objects) {
-            super(context, textViewResourceId, objects);
-            idMap = new HashMap<>();
-            for(int i = 0; i < objects.size(); i++) {
-                idMap.put(objects.get(i), i);
+    public void showErrorMessage() {
+        findViewById(R.id.ErrorMsg).setVisibility(View.VISIBLE);
+    }
+
+    public void hideErrorMessage() {
+        findViewById(R.id.ErrorMsg).setVisibility(View.INVISIBLE);
+    }
+
+    private class JSONResponseErrorListener implements Response.ErrorListener {
+        @Override
+        public void onErrorResponse(VolleyError error) {
+            error.printStackTrace();
+        }
+    }
+
+    private class JSONResponseListener implements Response.Listener<JSONObject> {
+        @Override
+        public void onResponse(JSONObject response) {
+            try {
+                JSONArray vegetables = response.getJSONArray("vegetables");
+                populateList(vegetables);
+            } catch(JSONException e) {
+                showErrorMessage();
             }
         }
+    }
 
+    private class VegetableListClickListener implements AdapterView.OnItemClickListener {
         @Override
-        public long getItemId(int position) {
-            String item = getItem(position);
-            return idMap.get(item);
-        }
-
-        @Override
-        public boolean hasStableIds() {
-            return true;
+        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+            Intent recipeListActivityIntent = new Intent(getApplicationContext(), RecipeListActivity.class);
+            recipeListActivityIntent.putExtra("VEGETABLE_ID", id);
+            startActivity(recipeListActivityIntent);
         }
     }
 }
