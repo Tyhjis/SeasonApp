@@ -68,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
         }
         final StableArrayAdapter adapter = new StableArrayAdapter(this, android.R.layout.simple_list_item_1, vegetableList, vegetableStringList);
         veggieList.setAdapter(adapter);
-        veggieList.setOnItemClickListener(new VegetableListClickListener());
+        veggieList.setOnItemClickListener(new VegetableListClickListener(getApplicationContext()));
     }
 
     public JSONObject getJSONObjectFromArray(JSONArray array, int index) {
@@ -108,6 +108,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onErrorResponse(VolleyError error) {
             error.printStackTrace();
+            showErrorMessage();
         }
     }
 
@@ -117,18 +118,10 @@ public class MainActivity extends AppCompatActivity {
             try {
                 JSONArray vegetables = response.getJSONArray("vegetables");
                 populateList(vegetables);
+                hideErrorMessage();
             } catch(JSONException e) {
                 showErrorMessage();
             }
-        }
-    }
-
-    private class VegetableListClickListener implements AdapterView.OnItemClickListener {
-        @Override
-        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-            Intent recipeListActivityIntent = new Intent(getApplicationContext(), RecipeListActivity.class);
-            recipeListActivityIntent.putExtra("VEGETABLE_ID", id);
-            startActivity(recipeListActivityIntent);
         }
     }
 }
