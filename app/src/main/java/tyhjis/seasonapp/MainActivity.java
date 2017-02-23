@@ -66,9 +66,10 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
-        final StableArrayAdapter adapter = new StableArrayAdapter(this, android.R.layout.simple_list_item_1, vegetableList, vegetableStringList);
+        final StableArrayAdapter adapter = new StableArrayAdapter(
+                this, android.R.layout.simple_list_item_1, vegetableList, vegetableStringList);
         veggieList.setAdapter(adapter);
-        veggieList.setOnItemClickListener(new VegetableListClickListener(getApplicationContext()));
+        veggieList.setOnItemClickListener(new VegetableListClickListener(this));
     }
 
     public JSONObject getJSONObjectFromArray(JSONArray array, int index) {
